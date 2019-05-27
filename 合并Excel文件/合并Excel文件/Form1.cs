@@ -23,6 +23,27 @@ namespace 合并Excel文件
             InitializeComponent();
             ds = new DataSet();
         }
+        /// <summary>
+        /// C#中获取Excel文件的第一个表名 
+        /// Excel文件中第一个表名的缺省值是Sheet1$, 但有时也会被改变为其他名字. 如果需要在C#中使用OleDb读写Excel文件, 就需要知道这个名字是什么. 以下代码就是实现这个功能的:
+        /// </summary>
+        /// <param name="excelFileName"></param>
+        /// <returns></returns>
+        public static string GetExcelFirstTableName(string excelFileName)
+        {
+            string tableName = null;
+            if (File.Exists(excelFileName))
+            {
+                using (OleDbConnection conn = new OleDbConnection("Provider=Microsoft.Ace.OleDb.12.0;" +
+                  "Extended Properties=\"Excel 12.0\";Data Source=" + excelFileName))
+                {
+                    conn.Open();
+                    DataTable dt = conn.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null);
+                    tableName = dt.Rows[0][2].ToString().Trim();
+                }
+            }
+            return tableName;
+        }
 
         private void OpenFiles_btn_Click(object sender, EventArgs e)
         {
@@ -38,14 +59,17 @@ namespace 合并Excel文件
                     string filename = System.IO.Path.GetFileName(file_Names[i]);
                     Textbox_ExcelFileList.Text = Textbox_ExcelFileList.Text + filename + "\r\n";
 
-
-                    string strConn = @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + file_Names[i] + ";Extended Properties='Excel 8.0';";
+                    string strConn = @"Provider=Microsoft.Ace.OleDb.12.0;Data Source=" + file_Names[i] + ";Extended Properties='Excel 12.0';";
+                    //string strConn = @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + file_Names[i] + ";Extended Properties='Excel 8.0';";
                     OleDbConnection conn = new OleDbConnection(strConn);
                     conn.Open();
+                    string tableName = null;
+                    DataTable dt_test = conn.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null);
+                    tableName = dt_test.Rows[0][2].ToString().Trim();
 
                     OleDbDataAdapter myCommand = null;
-                    myCommand = new OleDbDataAdapter("select * from [结果数据$]", strConn);
-                    //OleDbDataAdapter oada = new OleDbDataAdapter("select * from [结果数据$]", strConn);
+                    myCommand = new OleDbDataAdapter("select * from ["+ tableName + "]", strConn);
+                        //OleDbDataAdapter oada = new OleDbDataAdapter("select * from [结果数据$]", strConn);
                     DataTable dt = new DataTable();
                     myCommand.Fill(dt);
                     ds.Tables.Add(dt);
@@ -101,6 +125,11 @@ namespace 合并Excel文件
         private void 作者ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MessageBox.Show("李昂——南京大学");
+        }
+
+        private void MergeExcel_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }
